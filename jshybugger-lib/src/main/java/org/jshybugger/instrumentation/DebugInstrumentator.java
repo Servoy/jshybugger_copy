@@ -229,7 +229,7 @@ public class DebugInstrumentator implements NodeVisitor {
 	 *
 	 * @param node the node
 	 */
-	private void loadFile(AstRoot node) {
+	protected void loadFile(AstRoot node) {
 		prepareStack(node);
 		((TryStatement)node.getFirstChild()).getTryBlock().addChildToFront(makeExpression(makeFunctionCall("JsHybugger.loadFile", scriptURI, node.getEndLineno())));
 	}

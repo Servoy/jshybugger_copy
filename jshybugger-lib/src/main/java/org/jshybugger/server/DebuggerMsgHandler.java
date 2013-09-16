@@ -25,9 +25,8 @@ import java.util.Set;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONStringer;
+import org.json.JSONWriter;
 import org.webbitserver.WebSocketConnection;
-
-import android.util.Log;
 
 
 /**
@@ -143,16 +142,33 @@ public class DebuggerMsgHandler extends AbstractMsgHandler {
 	 * @param message the JSON message
 	 * @throws JSONException some JSON exception
 	 */
-	private void setScriptSource(final WebSocketConnection conn,
+	protected void setScriptSource(final WebSocketConnection conn,
 			final JSONObject message)  throws JSONException {
 		
-		conn.send(new JSONStringer().object()
+		String source = debugSession.setScriptSource(message);
+		if (source != null) {
+			JSONObject params = new JSONObject();
+			params.put("source", source);
+			debugSession.getBrowserInterface().sendMsgToWebView(HANDLER_NAME + ".setScriptSource",new JSONObject().put("params", params), null);
+			try {
+				sendAckMessage(conn, message);
+			} catch (RuntimeException rex) {
+
+				conn.send(new JSONStringer().object().key("id")
+						.value(message.getInt("id")).key("error").object()
+						.key("code").value(-32000).key("message")
+						.value(rex.getMessage()).endObject().endObject().toString());
+			}
+		}
+		else {
+			conn.send(new JSONStringer().object()
 				.key("id").value(message.getInt("id"))
 				.key("error").object()
 					.key("code").value(-32000)
 					.key("message").value("saving changes not implemented")
 					.endObject()
 				.endObject().toString());
+		}
 	}	
 
 	private void sendDebuggerMsgToWebView(final WebSocketConnection conn,
@@ -302,7 +318,7 @@ public class DebuggerMsgHandler extends AbstractMsgHandler {
 					}
 					breakpoints.add(breakpoint);
 					
-					JSONStringer res = new JSONStringer().object()
+					JSONWriter res = new JSONStringer().object()
 							.key("id").value(id)
 							.key("result").object()
 								.key("breakpointId").value(data.getString("breakpointId"));
@@ -329,7 +345,7 @@ public class DebuggerMsgHandler extends AbstractMsgHandler {
 			});
 			
 		} else {
-			Log.i(TAG, "Setting breakpoint not available for file: " + url);
+//			Log.i(TAG, "Setting breakpoint not available for file: " + url);
 			conn.send(new JSONStringer().object()
 					.key("id").value(id)
 					.key("error").object()
@@ -380,7 +396,7 @@ public class DebuggerMsgHandler extends AbstractMsgHandler {
 							"Debugger.setBreakpointByUrl",
 							new JSONObject().put("params", params), null);
 					
-					Log.d(TAG, "breakpointResolved: " + breakpoint);
+//					Log.d(TAG, "breakpointResolved: " + breakpoint);
 
 					conn.send(new JSONStringer().object()
 						.key("method").value("Debugger.breakpointResolved")

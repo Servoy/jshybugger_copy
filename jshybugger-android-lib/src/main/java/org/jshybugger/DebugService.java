@@ -20,6 +20,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jshybugger.server.AndroidDebugSession;
 import org.jshybugger.server.DebugServer;
 import org.jshybugger.server.DebugSession;
 
@@ -91,7 +92,7 @@ public class DebugService extends Service {
 			}			
 			
 			DebugServer debugServer = new DebugServer( debugPort );
-			debugSession = new DebugSession(this);
+			debugSession = new AndroidDebugSession(this);
 			
 			debugServer.exportSession(debugSession);
 		} catch (UnknownHostException e) {

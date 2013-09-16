@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.json.JSONException;
 import org.json.JSONStringer;
+import org.json.JSONWriter;
 import org.webbitserver.HttpControl;
 import org.webbitserver.HttpHandler;
 import org.webbitserver.HttpRequest;
@@ -30,9 +31,6 @@ import org.webbitserver.HttpResponse;
 import org.webbitserver.WebServer;
 import org.webbitserver.WebServers;
 import org.webbitserver.netty.NettyWebServer;
-
-import android.util.Log;
-
 
 /**
  * The DebugServer is the heart of the whole system. 
@@ -75,14 +73,14 @@ public class DebugServer {
 		        webServer.connectionExceptionHandler(new Thread.UncaughtExceptionHandler() {
 					@Override
 					public void uncaughtException(Thread t, Throwable e) {
-						Log.e(TAG, "Debug server terminated unexpected", e);
+//						Log.e(TAG, "Debug server terminated unexpected", e);
 					}
 				});
 		       
 		        // increase content length: default 65k length is sometimes to less
 		        ((NettyWebServer)webServer).maxContentLength(131072);
 		        
-				Log.i(TAG, "starting debug server on port: " + debugPort);
+//				Log.i(TAG, "starting debug server on port: " + debugPort);
 		        webServer.start();
 		        
 		        debugServerStarted.countDown();
@@ -94,7 +92,7 @@ public class DebugServer {
 		webServerThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			@Override
 			public void uncaughtException(Thread t, Throwable e) {
-				Log.e(TAG, "Bootstraping debug server terminated unexpected", e);
+//				Log.e(TAG, "Bootstraping debug server terminated unexpected", e);
 			}
 		});
 	}
@@ -150,7 +148,7 @@ public class DebugServer {
 		    public void handleHttpRequest(HttpRequest request, HttpResponse response, HttpControl control) {
 		    	try {
 		    		String host = request.header("Host");
-					JSONStringer res = new JSONStringer().array();
+					JSONWriter res = new JSONStringer().array();
 					
 					for (DebugSession dbgSession : debugSessions.values()) {
 						

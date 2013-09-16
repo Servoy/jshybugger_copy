@@ -30,7 +30,7 @@ import org.mozilla.javascript.EvaluatorException;
 import org.mozilla.javascript.Parser;
 import org.mozilla.javascript.ast.AstRoot;
 
-import android.util.Log;
+//import android.util.Log;
 
 /**
  * The JsCodeLoader is a helper class to make javascript files debug-able. 
@@ -55,26 +55,45 @@ public class JsCodeLoader {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	public synchronized static void instrumentFile(final String scriptUri, final InputStream inputFile, final OutputStream outputStream, Map<String, Object> properties) throws Exception  {
+		instrumentFile(scriptUri, inputFile, outputStream, properties, 0,new DebugInstrumentator(),true);
+	}
+	/**
+	 * Instrument javascript file.
+	 * @param scriptUri the script uri
+	 * @param inputFile the input file
+	 * @param outputStream the output stream
+	 * @param properties instrumentation properties
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 */
+	public synchronized static void instrumentFile(final String scriptUri, final InputStream inputFile, final OutputStream outputStream, Map<String, Object> properties, final int linenr,final DebugInstrumentator instrumenator) throws Exception  {
+		instrumentFile(scriptUri, inputFile, outputStream, properties, 0,new DebugInstrumentator(),true);
+	}
+	/**
+	 * Instrument javascript file.
+	 * @param scriptUri the script uri
+	 * @param inputFile the input file
+	 * @param outputStream the output stream
+	 * @param properties instrumentation properties
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 */
+	public synchronized static void instrumentFile(final String scriptUri, final InputStream inputFile, final OutputStream outputStream, Map<String, Object> properties, final int linenr,final DebugInstrumentator instrumenator,boolean startThread ) throws Exception  {
 	
 		final InputStreamReader inputStreamReader = new InputStreamReader(inputFile);
 		try {
 			final CountDownLatch startSignal = new CountDownLatch(1);
 			final List<Exception> parseExceptions = new ArrayList<Exception>();
 			
-			// parsing must be done in extra thread, because of demand for high stack size by rhino parser 
-			ThreadGroup tGroup = new ThreadGroup("JsParserGroup");
-			Thread thread = new Thread(tGroup, 
-				new Runnable() {
+			Runnable runnable = new Runnable() {
 	
 					@Override
 					public void run() {
 						AstRoot ast;
 						Parser jsParser = new Parser();
-						Log.i(TAG, "Instrumenting file: " + scriptUri);
+//						Log.i(TAG, "Instrumenting file: " + scriptUri);
 						try {
-							ast = jsParser.parse(inputStreamReader, scriptUri, 0);
+							ast = jsParser.parse(inputStreamReader, scriptUri, linenr);
 							//Log.i(TAG, "Instrumenting file: " + scriptUri);
-							ast.visit(new DebugInstrumentator());
+							ast.visit(instrumenator);
 							
 							//Log.i(TAG, "Writing file: " + scriptUri);
 							BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
@@ -98,19 +117,29 @@ public class JsCodeLoader {
 							startSignal.countDown();
 						}
 					}
-				}
-			,"ParserThread", (Integer)getPropertyValue(properties, INSTRUMENT_STACKSIZE, DEFAULT_INSTRUMENT_STACKSIZE));
+			};
+			if (startThread) {
+				// parsing must be done in extra thread, because of demand for high stack size by rhino parser 
+				ThreadGroup tGroup = new ThreadGroup("JsParserGroup");
+				Thread thread = new Thread(tGroup, 
+					runnable
+				,"ParserThread", (Integer)getPropertyValue(properties, INSTRUMENT_STACKSIZE, DEFAULT_INSTRUMENT_STACKSIZE));
 			
-			thread.start();
-			Log.i(TAG, "Waiting for instrumentation: " + scriptUri);
-			startSignal.await();
+				thread.start();
+//				Log.i(TAG, "Waiting for instrumentation: " + scriptUri);
+				startSignal.await();
+				tGroup.destroy();
+			}
+			else {
+				runnable.run();
+			}
 			
-			Log.i(TAG, "Instrumentation finished for file: " + scriptUri);
+//			Log.i(TAG, "Instrumentation finished for file: " + scriptUri);
 			if (!parseExceptions.isEmpty()) {
 				throw parseExceptions.get(0);
 			}
 		} catch (InterruptedException e) {
-			Log.w(TAG, "Waiting for instrumentation interrupted: " + scriptUri);
+//			Log.w(TAG, "Waiting for instrumentation interrupted: " + scriptUri);
 		} finally {
 			try {
 				inputStreamReader.close();

@@ -2,10 +2,11 @@
 <classpath>
 	<classpathentry including="**/*.java" kind="src" path="src/main/java"/>
 	<classpathentry excluding="**/*.java" kind="src" path="src/main/resources"/>
+	<classpathentry kind="lib" path="C:/javatools/android/platforms/android-17/android.jar"/>
 	<classpathentry kind="var" path="M2_REPO/io/netty/netty/3.6.3.Final/netty-3.6.3.Final.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/mozilla/rhino/1.7R4/rhino-1.7R4.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/webbitserver/webbit/0.4.14/webbit-0.4.14.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="lib/json-20090211.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jshybugger-lib"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

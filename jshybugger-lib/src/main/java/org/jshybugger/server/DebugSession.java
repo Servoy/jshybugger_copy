@@ -22,33 +22,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
-import org.jshybugger.DebugContentProvider;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONStringer;
 import org.webbitserver.BaseWebSocketHandler;
 import org.webbitserver.WebSocketConnection;
 
-import android.content.Context;
-import android.database.Cursor;
-import android.net.Uri;
-import android.util.Log;
-
 
 /**
  * The DebugServer is the heart of the whole system. 
  * It's the mediator between the app webview and the debugging frontend.
  */
-public class DebugSession extends BaseWebSocketHandler {
+public abstract class DebugSession extends BaseWebSocketHandler {
 
-	/** The Constant TAG. */
-	private static final String TAG = "DebugServer";
-	
 	/** The message handler list. */
-	private final HashMap<String,MessageHandler> HANDLERS = new LinkedHashMap<String,MessageHandler>(); 
-	
-	/** The application context. */
-	protected Context application;
+	protected final HashMap<String,MessageHandler> HANDLERS = new LinkedHashMap<String,MessageHandler>(); 
 	
 	/** The client connection list. */
 	private List<WebSocketConnection> connections = new ArrayList<WebSocketConnection>(); 		
@@ -56,8 +44,6 @@ public class DebugSession extends BaseWebSocketHandler {
 	/** The browser API interface. */
 	private BrowserInterface browserInterface;
 	
-	public final String PROVIDER_PROTOCOL;
-
 	private final String sessionId;
 	private String title;
 	private String url;
@@ -68,8 +54,8 @@ public class DebugSession extends BaseWebSocketHandler {
 	 *
 	 * @param application the application context
 	 */
-	public DebugSession( Context application ) {
-		this(application, UUID.randomUUID().toString().toUpperCase());
+	public DebugSession() {
+		this(UUID.randomUUID().toString().toUpperCase());
 	}
 	
 	/**
@@ -77,10 +63,7 @@ public class DebugSession extends BaseWebSocketHandler {
 	 *
 	 * @param application the application context
 	 */
-	public DebugSession( Context application, String sessionId ) {
-		this.application = application;
-		PROVIDER_PROTOCOL = DebugContentProvider.getProviderProtocol(application);
-		
+	public DebugSession(String sessionId ) {
 		MessageHandler msgHandler = new PageMsgHandler(this);
 		HANDLERS.put(msgHandler.getObjectName(), msgHandler);
 
@@ -125,17 +108,17 @@ public class DebugSession extends BaseWebSocketHandler {
 	@Override
 	public void onOpen( final WebSocketConnection conn ) {
 		if (getBrowserInterface() == null) {
-			Log.e(TAG, "Connection request rejected, no available WebView for debugging!");
+//			Log.e(TAG, "Connection request rejected, no available WebView for debugging!");
 			conn.close();
 			return;
 		}
 		if (isConnected()) {
-			Log.e(TAG, "Connection request rejected, active debug session found!");
+//			Log.e(TAG, "Connection request rejected, active debug session found!");
 			conn.close();
 			return;
 		}
 		
-		Log.d(TAG, conn.httpRequest().remoteAddress() + " entered the debugger space!" );
+//		Log.d(TAG, conn.httpRequest().remoteAddress() + " entered the debugger space!" );
 		connections.add(conn);
 
 		try {
@@ -144,7 +127,7 @@ public class DebugSession extends BaseWebSocketHandler {
 						new JSONObject(),
 						null);
 		} catch (JSONException e) {
-			Log.e(TAG, "Notify ClientConnected failed", e);
+//			Log.e(TAG, "Notify ClientConnected failed", e);
 		}		
 		
 	}
@@ -154,7 +137,7 @@ public class DebugSession extends BaseWebSocketHandler {
 	 */
 	@Override
 	public void onClose( WebSocketConnection conn) {
-		Log.d(TAG, conn + " has left the debugger space!" );
+//		Log.d(TAG, conn + " has left the debugger space!" );
 		connections.remove(conn);
 		try {
 			getBrowserInterface().sendMsgToWebView(
@@ -162,7 +145,7 @@ public class DebugSession extends BaseWebSocketHandler {
 						new JSONObject(),
 						null);
 		} catch (JSONException e) {
-			Log.e(TAG, "Notify ClientDisconnected failed", e);
+//			Log.e(TAG, "Notify ClientDisconnected failed", e);
 		}		
 	}
 
@@ -212,7 +195,7 @@ public class DebugSession extends BaseWebSocketHandler {
 				sendHandlerMessage(message, method[0], allHandler);
 			}
 		} else {
-			Log.e(TAG, "sendMessage no handler found: " + handlerMethod);
+//			Log.e(TAG, "sendMessage no handler found: " + handlerMethod);
 		}
 	}
 	
@@ -253,26 +236,9 @@ public class DebugSession extends BaseWebSocketHandler {
 	 * @return the file resource content 
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
-	public String loadScriptResourceById(String scriptUri, boolean encode) throws IOException {
-		
-		Log.d(TAG, "loadScriptResourceById: " + scriptUri);
-		
-		Cursor cursor = application.getContentResolver().query(Uri.parse(PROVIDER_PROTOCOL + scriptUri), 
-				new String[] { encode ? "scriptSourceEncoded" : "scriptSource" }, 
-				DebugContentProvider.ORIGNAL_SELECTION, 
-				null, 
-				null);
-		
-		String resourceContent=null;
-		if (cursor != null) {
-			if (cursor.moveToFirst()) {
-				resourceContent = cursor.getString(0);
-			}
-			cursor.close();
-		}
-		
-		return resourceContent;
-	}
+	public abstract String loadScriptResourceById(String scriptUri, boolean encode) throws IOException;
+
+	public abstract String setScriptSource(JSONObject message) throws JSONException;
 
 	public String getSessionId() {
 		return sessionId;
